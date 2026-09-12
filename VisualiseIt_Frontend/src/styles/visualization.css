@@ -1,0 +1,203 @@
+.visualizations-container {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+}
+
+.visualizations-container h2 {
+  font-size: 1.5rem;
+  color: var(--text);
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--amber);
+  padding-bottom: 10px;
+}
+
+.no-visualizations {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 30px;
+  font-style: italic;
+}
+
+.visualizations-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .visualizations-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.visualization-card {
+    /* background: 
+color-mix(in srgb, var(--panel) 70%, var(--bg)); */
+    /* border: 1px solid var(--line); */
+    border-radius: var(--radius-md, 8px);
+    /* padding: 15px; */
+    box-shadow: none;
+    width: 550px;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.visualization-card:hover {
+  border-color: var(--amber-dim, var(--amber));
+  transform: translateY(-2px);
+}
+
+.visualization-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.visualization-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.visualization-type {
+  background-color: var(--amber);
+  color: var(--bg);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.visualization-description {
+    /* color: var(--text-dim); */
+    font-size: 0.9rem;
+    margin: 8px 0;
+    line-height: 1.4;
+    font-weight: bold;
+    font-size: large;
+}
+
+/* .visualization-content {
+  margin-top: 15px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 4px);
+  padding: 15px;
+} */
+
+.placeholder {
+  color: #aaa;
+  text-align: center;
+  font-style: italic;
+  width: 100%;
+}
+
+/* Interactive Visualization Styles */
+.interactive-plot {
+  width: 100%;
+}
+
+.interactive-plot p {
+  margin-top: 0;
+  color: #666;
+}
+
+.canvas-visualization {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Image Visualization Styles */
+.image-visualization {
+  width: 100%;
+  text-align: center;
+}
+
+.image-visualization img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.image-caption {
+  margin-top: 10px;
+  color: #666;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* 3D Visualization Styles */
+.threed-visualization {
+  width: 100%;
+}
+
+.threed-visualization p {
+  margin-top: 0;
+}
+
+.threed-visualization pre {
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+
+/* Animation Visualization Styles */
+.animation-visualization {
+  width: 100%;
+  text-align: center;
+}
+
+.animation-visualization video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Formula Visualization Styles */
+.formula-visualization {
+  width: 100%;
+  text-align: center;
+}
+
+.formula-display {
+  background-color: white;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border: 1px solid #e0e0e0;
+}
+
+.formula-display pre {
+  margin: 0;
+  font-family: "Courier New", monospace;
+  color: #333;
+}
+
+.formula-visualization p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.visualization-raw {
+  width: 100%;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+}
+
+.visualization-raw pre {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #333;
+}

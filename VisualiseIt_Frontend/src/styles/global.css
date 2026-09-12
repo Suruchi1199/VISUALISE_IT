@@ -1,0 +1,113 @@
+/* ============================================================
+   EduVision — global design tokens & shared classes
+   Palette: deep-space navy + brass/amber (instrument) + teal (energy)
+   ============================================================ */
+
+:root {
+  --bg: #070b14;
+  --bg-elev: #0e1626;
+  --panel: #121c30;
+  --panel-2: #182541;
+  --line: #253352;
+  --amber: #e8a33d;
+  --amber-dim: #8a6a34;
+  --teal: #4fd1c5;
+  --teal-dim: #245c56;
+  --red: #e8615c;
+  --text: #eef1f7;
+  --text-dim: #7c8aa5;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --sidebar-w: 236px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 140% at 50% -10%, #101c33 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+ul { list-style: none; padding: 0; margin: 0; }
+
+::selection { background: var(--amber); color: #1a1005; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- layout shell ---------- */
+.app-shell { display: flex; min-height: 100vh; }
+.app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; margin-left: var(--sidebar-w); }
+.app-content { padding: 28px 34px 60px; max-width: 1280px; width: 100%; margin: 0 auto; }
+
+@media (max-width: 860px) {
+  .app-main { margin-left: 0; }
+}
+
+/* ---------- typography ---------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0 0 6px;
+}
+.page-title { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin: 0; letter-spacing: -0.01em; }
+.page-sub { color: var(--text-dim); font-size: 13.5px; margin-top: 6px; max-width: 520px; }
+.section-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin: 0 0 14px; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 13.5px;
+  padding: 11px 20px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--text); cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+.btn:hover { border-color: var(--amber-dim); color: var(--amber); }
+.btn.primary {
+  background: linear-gradient(135deg, var(--amber), #c97f24);
+  color: #1a1005; border: none;
+}
+.btn.primary:hover { filter: brightness(1.08); color: #1a1005; }
+.btn.block { width: 100%; }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
+.btn.ghost:hover { color: var(--text); }
+
+/* ---------- form controls ---------- */
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.field label { font-size: 12.5px; color: var(--text-dim); font-weight: 500; }
+.field input {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+  padding: 12px 14px; border-radius: 9px; font-size: 14px; font-family: var(--font-body);
+}
+.field input:focus { border-color: var(--amber-dim); }
+.field input::placeholder { color: #4c5b7c; }
+.field-error { font-size: 11.5px; color: var(--red); }
+
+/* ---------- cards / panels ---------- */
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono);
+  font-size: 10.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line);
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.badge.soon { color: var(--amber); border-color: var(--amber-dim); }
+
+/* ---------- progress bar ---------- */
+.bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), var(--amber)); }

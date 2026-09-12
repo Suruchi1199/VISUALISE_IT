@@ -1,0 +1,165 @@
+.chapter-detail {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.chapter-header {
+  margin-bottom: 24px;
+}
+
+.back-link {
+  display: inline-flex;
+  margin-bottom: 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.back-link:hover {
+  color: var(--amber);
+}
+
+.chapter-title-section {
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.chapter-title-section h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 34px);
+}
+
+.chapter-description {
+  margin: 10px 0 0;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.chapter-content-wrapper {
+  display: grid;
+  gap: 28px;
+  padding: 28px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.theory-section,
+.visualization-section {
+  min-width: 0;
+}
+
+.visualization-section {
+  margin-top: 0;
+  padding-top: 0;
+  padding-left: 28px;
+  border-top: 0;
+  border-left: 1px solid var(--line);
+}
+
+.chapter-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+}
+
+.chapter-section:has(.visualization-section) {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 1.1fr);
+}
+
+.chapter-section + .chapter-section {
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.theory-section h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.section-content {
+  white-space: pre-wrap;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.theory-placeholder,
+.error-message {
+  padding: 0;
+}
+
+.theory-placeholder h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.theory-placeholder p {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.theory-placeholder .theory-description {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.chapter-detail.loading,
+.chapter-detail.error,
+.chapter-detail.not-found {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+}
+
+.chapter-detail.loading p {
+  color: var(--text-dim);
+}
+
+.error-message {
+  text-align: center;
+}
+
+.error-message p {
+  margin: 0 0 14px;
+  color: var(--text-dim);
+}
+
+.error-message a {
+  color: var(--amber);
+}
+
+@media (max-width: 800px) {
+  .chapter-detail {
+    width: min(100% - 28px, 1180px);
+    padding-top: 24px;
+  }
+
+  .chapter-title-section,
+  .chapter-content-wrapper,
+  .error-message {
+    padding: 20px;
+  }
+
+  .chapter-content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .chapter-section:has(.visualization-section) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .visualization-section {
+    padding-top: 20px;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}

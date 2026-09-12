@@ -1,0 +1,185 @@
+.nsv-root {
+          --ink: #16233A;
+          --grid: #2E4A6B;
+          --gridfaint: #24334A;
+          --chalk: #EEF1F5;
+          --chalk-dim: #9FB0C6;
+          --gold: #E3A64C;
+          --coral: #E8654F;
+          --sage: #7FBF8E;
+          font-family: 'IBM Plex Sans', sans-serif;
+          background: var(--ink);
+          color: var(--chalk);
+          padding: 16px 12px 20px;
+          border-radius: 12px;
+          max-width: 760px;
+          margin: 0 auto;
+          box-sizing: border-box;
+        
+        }
+        .nsv-root * { box-sizing: border-box; }
+
+        .nsv-eyebrow {
+          font-family: 'IBM Plex Mono', monospace;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          font-size: 11px;
+          color: var(--gold);
+          margin: 0 0 8px;
+        }
+        .nsv-h1 {
+          font-family: 'Fraunces', serif;
+          font-weight: 600;
+          font-size: clamp(24px, 4vw, 34px);
+          margin: 0 0 6px;
+          line-height: 1.1;
+        }
+        .nsv-sub {
+          color: var(--chalk-dim);
+          font-size: 14.5px;
+          line-height: 1.55;
+          max-width: 60ch;
+          margin: 0 0 24px;
+        }
+
+        .nsv-panel {
+          background: linear-gradient(180deg, #182740, #14203570);
+          border: 1px solid var(--grid);
+          border-radius: 12px;
+          padding: 18px;
+          margin-bottom: 20px;
+          height:50%;
+        }
+
+        .nsv-controls {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 14px;
+        }
+        .nsv-btn {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          background: var(--coral);
+          color: #17131266;
+          color: #1B1210;
+          border: none;
+          padding: 9px 16px;
+          border-radius: 7px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: transform 0.12s ease, opacity 0.12s ease;
+        }
+        .nsv-btn:hover { transform: translateY(-1px); }
+        .nsv-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .nsv-btn.ghost {
+          background: transparent;
+          color: var(--chalk-dim);
+          border: 1px solid var(--grid);
+        }
+        .nsv-step-readout {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          color: var(--chalk-dim);
+          margin-left: auto;
+        }
+        .nsv-step-readout b { color: var(--chalk); }
+
+        .nsv-current {
+          font-family: 'Fraunces', serif;
+          font-size: 20px;
+          margin: 0 0 14px;
+        }
+        .nsv-current .val { color: var(--gold); }
+        .nsv-current .rat { color: var(--sage); }
+
+        .nsv-svg-wrap { width: 100%; }
+        .nsv-svg-wrap svg { width: 100%; height: auto; display: block; max-height: none; }
+/* //440px */
+        .nsv-legend {
+          display: flex; gap: 18px; flex-wrap: wrap;
+          font-size: 12.5px; color: var(--chalk-dim);
+          margin-top: 10px;
+        }
+        .nsv-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .nsv-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+        .nsv-section-title {
+          font-family: 'Fraunces', serif;
+          font-weight: 600;
+          font-size: 19px;
+          margin: 0 0 12px;
+        }
+
+        .nsv-classify-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .nsv-input {
+          flex: 1;
+          min-width: 180px;
+          background: var(--ink);
+          border: 1px solid var(--grid);
+          color: var(--chalk);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 14px;
+          padding: 10px 12px;
+          border-radius: 7px;
+          outline: none;
+        }
+        .nsv-input:focus { border-color: var(--gold); }
+
+        .nsv-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .nsv-chip {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 12.5px;
+          background: transparent;
+          border: 1px solid var(--grid);
+          color: var(--chalk-dim);
+          padding: 6px 11px;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .nsv-chip:hover { border-color: var(--gold); color: var(--chalk); }
+
+        .nsv-result {
+          border-radius: 9px;
+          padding: 14px 16px;
+          font-size: 14px;
+          line-height: 1.5;
+          border: 1px solid var(--grid);
+        }
+        .nsv-result.rational { border-color: var(--sage); background: #7fbf8e14; }
+        .nsv-result.irrational { border-color: var(--gold); background: #e3a64c14; }
+        .nsv-result.unknown { border-color: var(--grid); color: var(--chalk-dim); }
+        .nsv-result-label {
+          font-family: 'IBM Plex Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-size: 11px;
+          margin-bottom: 4px;
+          display: block;
+        }
+        .nsv-result.rational .nsv-result-label { color: var(--sage); }
+        .nsv-result.irrational .nsv-result-label { color: var(--gold); }
+
+        .nsv-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 560px) { .nsv-cards { grid-template-columns: 1fr; } }
+        .nsv-card {
+          border: 1px solid var(--grid);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .nsv-card h3 {
+          font-family: 'Fraunces', serif;
+          font-size: 16px;
+          margin: 0 0 8px;
+        }
+        .nsv-card.rat h3 { color: var(--sage); }
+        .nsv-card.irrat h3 { color: var(--gold); }
+        .nsv-card p { font-size: 13px; color: var(--chalk-dim); line-height: 1.55; margin: 0 0 8px; }
+        .nsv-card ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--chalk-dim); line-height: 1.7; }
+        .nsv-card code {
+          font-family: 'IBM Plex Mono', monospace;
+          background: #0000002e;
+          padding: 1px 5px;
+          border-radius: 4px;
+        }

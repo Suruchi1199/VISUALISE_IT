@@ -1,0 +1,51 @@
+.auth-shell {
+  min-height: 100vh; display: grid; grid-template-columns: 1.1fr 1fr;
+}
+@media (max-width: 860px) { .auth-shell { grid-template-columns: 1fr; } }
+
+.auth-brand {
+  position: relative; overflow: hidden;
+  background: radial-gradient(120% 120% at 20% 0%, #17233f 0%, #070b14 60%);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 44px 48px;
+}
+@media (max-width: 860px) { .auth-brand { display: none; } }
+
+.auth-brand-mark {
+  display: flex; align-items: center; gap: 10px; font-family: var(--font-display);
+  font-weight: 700; font-size: 18px;
+}
+.auth-brand-mark .dot {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--amber), #c97f24);
+  display: flex; align-items: center; justify-content: center; color: #1a1005;
+}
+
+.auth-brand-copy h2 {
+  font-family: var(--font-display); font-size: 34px; line-height: 1.2; font-weight: 700;
+  max-width: 420px; margin: 0 0 14px;
+}
+.auth-brand-copy p { color: var(--text-dim); max-width: 380px; font-size: 14px; line-height: 1.6; }
+
+.auth-orbit-deco {
+  position: absolute; right: -80px; bottom: -80px; width: 340px; height: 340px;
+  border-radius: 50%; border: 1px solid var(--line); opacity: 0.6;
+}
+.auth-orbit-deco::before, .auth-orbit-deco::after {
+  content: ""; position: absolute; border-radius: 50%; border: 1px solid var(--line);
+}
+.auth-orbit-deco::before { inset: 40px; }
+.auth-orbit-deco::after { inset: 90px; border-color: var(--amber-dim); }
+
+.auth-form-side { display: flex; align-items: center; justify-content: center; padding: 40px 28px; }
+.auth-form-card { width: 100%; max-width: 380px; }
+.auth-form-card h1 { font-family: var(--font-display); font-size: 24px; margin: 0 0 6px; }
+.auth-form-card .page-sub { margin-bottom: 26px; }
+
+.auth-switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-dim); }
+.auth-switch a { color: var(--amber); font-weight: 600; }
+
+.auth-forgot { text-align: right; margin: -8px 0 18px; }
+.auth-forgot a { font-size: 12px; color: var(--text-dim); }
+.auth-forgot a:hover { color: var(--amber); }
