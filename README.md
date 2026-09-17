@@ -3,7 +3,7 @@
 **VisualiseIt** is an interactive learning platform that turns school math and science concepts into visual, hands-on experiences — instead of just reading definitions, students can *see* and *manipulate* the concept.
 
 Currently includes interactive visualizers for Class 9 topics such as:
-- Number Systems
+- Orienting Yourself: The Use of Coordinates
 - Polynomials
 - Coordinate Geometry
 - Graph Plotting
@@ -89,4 +89,3 @@ The frontend will run on `http://localhost:3000` and the backend on `http://loca
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome. Feel free to open an issue or submit a pull request.
-
