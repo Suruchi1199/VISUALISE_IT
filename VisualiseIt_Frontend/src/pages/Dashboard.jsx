@@ -1,9 +1,7 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
-import {
-  BADGES,  CONTINUE_LEARNING, TODAYS_GOAL, WEEKLY_PROGRESS, STATS,
-} from "../data/mockData.js";
-import { fetchClassById, fetchSubjectsByClass } from "../data/api.js";
+import { CONTINUE_LEARNING, TODAYS_GOAL, WEEKLY_PROGRESS } from "../data/mockData.js";
+import { fetchClassById, fetchSubjectsByClass, fetchDashboard } from "../data/api.js";
 import { useEffect, useState } from "react";
 import "../styles/dashboard.css";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -31,6 +29,7 @@ export default function Dashboard() {
   const maxWeek = Math.max(...WEEKLY_PROGRESS);
   const [activeClass, setActiveClass] = useState(null);
   const [classSubjects, setClassSubjects] = useState([]);
+  const [learningStats, setLearningStats] = useState({ totalXp: 0, completedChapters: 0, quizzesCompleted: 0, averageScore: 0, recentCompletions: [] });
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +51,10 @@ export default function Dashboard() {
     loadActive();
     return () => { mounted = false; };
   }, [selectedClass, authenticatedFetch]);
+
+  useEffect(() => {
+    fetchDashboard(authenticatedFetch).then(setLearningStats).catch(() => {});
+  }, [authenticatedFetch]);
   const focusSubject = classSubjects[0] || {};
   const activeClassLabel = activeClass?.label || "Study path";
   const activeClassDescription = activeClass?.description || "";
@@ -165,9 +168,9 @@ export default function Dashboard() {
           <div className="card">
             <p className="section-title">Your stats</p>
             <div className="stat-row">
-              <div className="stat-box"><div className="val">{STATS.xp}</div><div className="lbl">XP</div></div>
-              <div className="stat-box"><div className="val">{STATS.coins}</div><div className="lbl">Coins</div></div>
-              <div className="stat-box"><div className="val">{STATS.streak}</div><div className="lbl">Streak</div></div>
+              <div className="stat-box"><div className="val">{learningStats.totalXp}</div><div className="lbl">XP</div></div>
+              <div className="stat-box"><div className="val">{learningStats.completedChapters}</div><div className="lbl">Chapters</div></div>
+              <div className="stat-box"><div className="val">{learningStats.averageScore}%</div><div className="lbl">Quiz average</div></div>
             </div>
           </div>
 
@@ -193,17 +196,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Badges */}
           <div className="card">
-            <p className="section-title">Badges</p>
-            <div className="badge-row">
-              {BADGES.map((b) => (
-                <div className={"badge-chip" + (b.earned ? " earned" : "")} key={b.id}>
-                  <div className="ring">🏅</div>
-                  <span className="label">{b.label}</span>
-                </div>
-              ))}
-            </div>
+            <p className="section-title">Completed chapters</p>
+            {learningStats.recentCompletions.length ? <ul>{learningStats.recentCompletions.map((item) => <li className="list-row" key={item.chapterId}><div className="list-row-main"><span className="list-row-title">{item.chapterTitle}</span><span className="list-row-sub">Score: {item.score}/{item.totalQuestions}</span></div><span className="list-row-tag">+{item.xpEarned} XP</span></li>)}</ul> : <p className="page-sub">Complete a chapter quiz to see your progress here.</p>}
           </div>
         </div>
       </div>

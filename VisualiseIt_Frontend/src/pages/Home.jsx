@@ -138,7 +138,7 @@ export default function Home() {
           </div>
         </div>
       </header>
-//CLASSES
+
       <main className="landing-main">
         <section className="hero-section">
           <div className="hero-copy">

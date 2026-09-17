@@ -75,6 +75,20 @@
   border-top: 1px solid var(--line);
 }
 
+.chapter-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 20px; }
+.chapter-pagination span { color: var(--text-dim); font-size: 14px; }
+.chapter-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+.quiz-form { display: grid; gap: 18px; }
+.quiz-question { display: grid; gap: 10px; margin: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel); }
+.quiz-question legend { padding: 0 4px; font-family: var(--font-display); font-weight: 700; }
+.quiz-question label { color: var(--text-dim); cursor: pointer; line-height: 1.5; }
+.quiz-question input { accent-color: var(--amber); margin-right: 6px; }
+.quiz-result { max-width: 640px; margin: 40px auto; text-align: center; }
+.quiz-result h1 { margin: 6px 0 12px; font-family: var(--font-display); }
+.quiz-score { color: var(--amber); font-size: 18px; }
+.quiz-result > p:last-of-type { color: var(--text-dim); }
+.quiz-error { color: #df6d6d; margin: 0; }
+
 .theory-section h2 {
   margin: 0 0 12px;
   font-family: var(--font-display);
@@ -85,6 +99,50 @@
   white-space: pre-wrap;
   color: var(--text-dim);
   line-height: 1.7;
+}
+
+.chapter-summary {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+}
+
+.chapter-summary strong,
+.chapter-key-points h3 {
+  color: var(--amber);
+  font-family: var(--font-display);
+}
+
+.chapter-summary p {
+  margin: 5px 0 0;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.chapter-key-points {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.chapter-key-points h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.chapter-key-points ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.chapter-key-points li {
+  margin: 5px 0;
+  color: var(--text-dim);
+  line-height: 1.5;
 }
 
 .theory-placeholder,
@@ -162,4 +220,5 @@
     border-top: 1px solid var(--line);
     border-left: 0;
   }
+  .chapter-pagination { flex-wrap: wrap; }
 }

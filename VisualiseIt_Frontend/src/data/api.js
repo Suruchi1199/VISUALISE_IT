@@ -90,7 +90,34 @@ export async function fetchChapterSections(chapterId, authFetch) {
     heading: section.heading,
     content: section.content,
     visualizationId: section.visualizationId ?? null,
+    summary: section.summary || "",
+    keyPoints: Array.isArray(section.keyPoints) ? section.keyPoints : [],
+    visualizationData: section.visualizationData || {},
   })) : [];
+}
+
+export async function fetchChapterQuiz(chapterId, authFetch) {
+  const res = await authFetch(`${API_URL}/api/chapters/${chapterId}/quiz`);
+  if (!res.ok) throw new Error(`Failed to fetch quiz: ${res.status}`);
+  return res.json();
+}
+
+export async function submitChapterQuiz(chapterId, answers, authFetch) {
+  const res = await authFetch(`${API_URL}/api/chapters/${chapterId}/quiz/submit`, {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Unable to submit quiz");
+  }
+  return res.json();
+}
+
+export async function fetchDashboard(authFetch) {
+  const res = await authFetch(`${API_URL}/api/user/dashboard`);
+  if (!res.ok) throw new Error(`Failed to fetch dashboard: ${res.status}`);
+  return res.json();
 }
 
 export default {
@@ -102,4 +129,7 @@ export default {
   fetchClassById,
   fetchVisualizationsByChapter,
   fetchChapterSections,
+  fetchChapterQuiz,
+  submitChapterQuiz,
+  fetchDashboard,
 };

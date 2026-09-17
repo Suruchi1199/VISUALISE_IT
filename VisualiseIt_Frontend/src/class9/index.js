@@ -2,7 +2,7 @@
 import { lazy } from "react";
 
 const class9Topics = {
-  "number-system": lazy(() => import("./NumberSystemVisualizer.jsx")),
+  "orienting-yourself-coordinates": lazy(() => import("./CoordinateGeometryVisualizer.jsx")),
   "polynomials": lazy(() => import("./PolynomialVisualizer.jsx")),
   "coordinate-geometry": lazy(() => import("./CoordinateGeometryVisualizer.jsx")),
 };

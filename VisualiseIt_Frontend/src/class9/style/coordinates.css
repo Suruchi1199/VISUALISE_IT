@@ -54,6 +54,20 @@
           border-radius: 12px;
           padding: 18px;
         }
+        .cg-demo { margin-bottom: 14px; }
+        .cg-demo-heading { display: flex; justify-content: space-between; color: var(--chalk-dim); font: 11px 'IBM Plex Mono', monospace; }
+        .cg-demo-badge { color: var(--gold); text-transform: uppercase; letter-spacing: .1em; }
+        .cg-demo h2 { font: 600 20px 'Fraunces', serif; margin: 10px 0 4px; }
+        .cg-demo p { color: var(--chalk-dim); font-size: 13px; line-height: 1.5; min-height: 40px; margin: 0; }
+        .cg-demo-track { display: flex; gap: 6px; margin: 12px 0; }
+        .cg-demo-track button { width: 28px; height: 5px; padding: 0; border: 0; border-radius: 5px; background: var(--grid); cursor: pointer; }
+        .cg-demo-track button.active { background: var(--gold); }
+        .cg-demo-actions { display: flex; justify-content: space-between; gap: 8px; }
+        .cg-demo-graph { margin-top: 12px; background: #101b2e; border-radius: 8px; }
+        .cg-demo-graph svg { max-height: 220px; }
+        .cg-demo-line { stroke: var(--coral); stroke-width: .06; stroke-dasharray: .12 .08; transition: x2 .5s ease, y2 .5s ease; }
+        .cg-demo-point { fill: var(--coral); stroke: var(--chalk); stroke-width: .04; animation: cg-pulse 1.8s ease-in-out infinite; }
+        @keyframes cg-pulse { 0%, 100% { opacity: .7; } 50% { opacity: 1; r: .23; } }
 
         .cg-svg-wrap { width: 100%; cursor: crosshair; }
         .cg-svg-wrap svg { width: 100%; height: auto; display: block; max-height: 440px; }

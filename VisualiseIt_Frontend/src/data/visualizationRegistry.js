@@ -3,21 +3,24 @@
  * Maps visualization types (from API) to React components
  * Enables dynamic component selection based on database type field
  */
-
-import NumberSystemVisualizer from "../class9/NumberSystemVisualizer";
+import DistanceFormulaVisualizer from "../class9/DistanceFormulaVisualizer";
 import CoordinateGeometryVisualizer from "../class9/CoordinateGeometryVisualizer";
 import PolynomialVisualizer from "../class9/PolynomialVisualizer";
-
+import MidpointReflectionVisualizer from "../class9/MidpointReflectionVisualizer";
+import GeometryApplicationsVisualizer from "../class9/GeometryApplicationsVisualizer";
+import RealLifeApplicationsVisualizer from "../class9/RealLifeApplicationsVisualizer";
 /**
  * Visualization type mapping
- * Key: visualization type from database (e.g., "number-system")
+ * Key: visualization type from database (e.g., "coordinate-geometry")
  * Value: React component to render
  */
 export const VISUALIZATION_REGISTRY = {
-  "number-system": NumberSystemVisualizer,
-  "number-systems": NumberSystemVisualizer, // alias
   "coordinate-geometry": CoordinateGeometryVisualizer,
   "coordinates": CoordinateGeometryVisualizer, // alias
+  "distance-formula": DistanceFormulaVisualizer, // alias
+  "midpoints and reflections": MidpointReflectionVisualizer, // alias
+  "geometry-applications" : GeometryApplicationsVisualizer, // alias
+  "real-life applications": RealLifeApplicationsVisualizer, // alias
   "polynomial": PolynomialVisualizer,
   "polynomials": PolynomialVisualizer, // alias
 };

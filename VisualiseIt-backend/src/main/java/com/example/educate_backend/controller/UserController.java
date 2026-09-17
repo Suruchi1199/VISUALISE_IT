@@ -3,6 +3,8 @@ package com.example.educate_backend.controller;
 import com.example.educate_backend.dto.SettingsResponse;
 import com.example.educate_backend.dto.UpdateProfileRequest;
 import com.example.educate_backend.dto.ProfileResponse;
+import com.example.educate_backend.dto.DashboardResponse;
+import com.example.educate_backend.service.QuizService;
 import com.example.educate_backend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,15 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private QuizService quizService;
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(quizService.getDashboard(authentication.getName()));
+    }
 
     /**
      * Update user profile (name and email).

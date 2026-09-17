@@ -100,44 +100,45 @@ public class SubjectService {
                             .filter(chapter -> chapter.getChapterNumber() == 1)
                             .findFirst()
                             .ifPresentOrElse(chapter -> {
-                                chapter.setTitle("Orienting Yourself: The Use of Coordinates");
-                                chapter.setDescription("Coordinate systems, the Cartesian plane, and distance between two points.");
-                                chapterRepository.save(chapter);
-
-                                if (!visualizationRepository.existsByChapter_IdAndTitle(chapter.getId(), "Cartesian Coordinate Plane")) {
-                                    visualizationRepository.save(new Visualization(
-                                            null,
-                                            chapter,
-                                            "Cartesian Coordinate Plane",
-                                            "coordinate-geometry",
-                                            "Plot points and explore coordinates, axes, and quadrants.",
-                                            "{\"initialPoints\":[{\"id\":1,\"x\":4,\"y\":3},{\"id\":2,\"x\":-3,\"y\":5}]}"
-                                    ));
-                                }
+                                synchronizeCoordinateChapter(chapter);
                             }, () -> {
                                 // Fallback: try to find any existing chapter mistakenly titled "Number Systems" (or similar)
                                 chapterRepository.findBySubject_IdOrderByChapterNumber(subject.getId()).stream()
                                         .filter(ch -> ch.getTitle() != null && ch.getTitle().toLowerCase().contains("number"))
                                         .findFirst()
-                                        .ifPresent(ch -> {
-                                            ch.setTitle("Orienting Yourself: The Use of Coordinates");
-                                            ch.setDescription("Coordinate systems, the Cartesian plane, and distance between two points.");
-                                            chapterRepository.save(ch);
-
-                                            if (!visualizationRepository.existsByChapter_IdAndTitle(ch.getId(), "Cartesian Coordinate Plane")) {
-                                                visualizationRepository.save(new Visualization(
-                                                        null,
-                                                        ch,
-                                                        "Cartesian Coordinate Plane",
-                                                        "coordinate-geometry",
-                                                        "Plot points and explore coordinates, axes, and quadrants.",
-                                                        "{\"initialPoints\":[{\"id\":1,\"x\":4,\"y\":3},{\"id\":2,\"x\":-3,\"y\":5}]}"
-                                                ));
-                                            }
-                                        });
+                                        .ifPresent(this::synchronizeCoordinateChapter);
                             });
                 })
         );
+    }
+
+    private void synchronizeCoordinateChapter(Chapter chapter) {
+        chapter.setTitle("Orienting Yourself: The Use of Coordinates");
+        chapter.setDescription("Coordinate systems, the Cartesian plane, and distance between two points.");
+        chapterRepository.save(chapter);
+
+        List<Visualization> visualizations = visualizationRepository.findByChapter_IdOrderByIdAsc(chapter.getId());
+        visualizations.stream()
+                .filter(visualization -> visualization.getType().equalsIgnoreCase("number-system")
+                        || visualization.getType().equalsIgnoreCase("number-systems"))
+                .forEach(visualization -> {
+                    visualization.setTitle("Cartesian Coordinate Plane");
+                    visualization.setType("coordinate-geometry");
+                    visualization.setDescription("Plot points and explore coordinates, axes, and quadrants.");
+                });
+        visualizationRepository.saveAll(visualizations);
+
+        if (visualizations.stream().noneMatch(visualization ->
+                visualization.getType().equalsIgnoreCase("coordinate-geometry"))) {
+            visualizationRepository.save(new Visualization(
+                    null,
+                    chapter,
+                    "Cartesian Coordinate Plane",
+                    "coordinate-geometry",
+                    "Plot points and explore coordinates, axes, and quadrants.",
+                    "{\"initialPoints\":[{\"id\":1,\"x\":4,\"y\":3},{\"id\":2,\"x\":-3,\"y\":5}]}"
+            ));
+        }
     }
 
     private void initializeDefaultChapters(Subject subject) {

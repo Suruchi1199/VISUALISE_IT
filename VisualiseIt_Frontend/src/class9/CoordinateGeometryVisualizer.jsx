@@ -35,6 +35,7 @@ export default function CoordinateGeometryVisualizer({ data = {} }) {
     { id: idCounter++, x: 4, y: 3 },
     { id: idCounter++, x: -3, y: 5 },
   ];
+  const lessonPoint = data.lessonPoint || { x: 4, y: 3 };
   
   const svgRef = useRef(null);
   const [points, setPoints] = useState(initialPoints);
@@ -42,8 +43,15 @@ export default function CoordinateGeometryVisualizer({ data = {} }) {
   const [hover, setHover] = useState(null);
   const [inputX, setInputX] = useState("");
   const [inputY, setInputY] = useState("");
+  const [demoStep, setDemoStep] = useState(0);
 
   const selected = points.find((p) => p.id === selectedId) || null;
+  const demoSteps = [
+    { title: "Start at the origin", text: "Every point is measured from O = (0, 0).", x: 0, y: 0 },
+    { title: "Move along the x-axis", text: `The first number is x = ${lessonPoint.x}, the abscissa.`, x: lessonPoint.x, y: 0 },
+    { title: "Move up or down", text: `The second number is y = ${lessonPoint.y}, the ordinate.`, x: lessonPoint.x, y: lessonPoint.y },
+  ];
+  const demoPoint = demoSteps[demoStep];
 
   const toScreen = (x, y) => ({ x, y: -y });
   const clamp = (v) => Math.max(-RANGE, Math.min(RANGE, v));
@@ -108,6 +116,42 @@ export default function CoordinateGeometryVisualizer({ data = {} }) {
 
       <div className="cg-layout">
         {/* Graph */}
+        <div className="cg-panel">
+          <div className="cg-demo" aria-live="polite">
+            <div className="cg-demo-heading">
+              <span className="cg-demo-badge">Animated idea</span>
+              <span>{demoStep + 1} / {demoSteps.length}</span>
+            </div>
+            <h2>{demoPoint.title}</h2>
+            <p>{demoPoint.text}</p>
+            <div className="cg-demo-track">
+              {demoSteps.map((step, index) => (
+                <button
+                  key={step.title}
+                  className={index === demoStep ? "active" : ""}
+                  onClick={() => setDemoStep(index)}
+                  aria-label={`Show step ${index + 1}: ${step.title}`}
+                />
+              ))}
+            </div>
+            <div className="cg-demo-actions">
+              <button className="cg-btn ghost" onClick={() => setDemoStep((demoStep + 2) % 3)}>← Back</button>
+              <button className="cg-btn" onClick={() => setDemoStep((demoStep + 1) % 3)}>
+                {demoStep === demoSteps.length - 1 ? "Replay" : "Next step"} →
+              </button>
+            </div>
+          </div>
+          <div className="cg-svg-wrap cg-demo-graph">
+            <svg viewBox={`-${RANGE + 1} -${RANGE + 1} ${2 * (RANGE + 1)} ${2 * (RANGE + 1)}`} aria-label="Animated coordinate point">
+              <line x1={-RANGE - 0.6} y1="0" x2={RANGE + 0.6} y2="0" stroke="var(--chalk)" strokeWidth="0.035" />
+              <line x1="0" y1={-RANGE - 0.6} x2="0" y2={RANGE + 0.6} stroke="var(--chalk)" strokeWidth="0.035" />
+              <line className="cg-demo-line" x1="0" y1="0" x2={demoPoint.x} y2="0" />
+              <line className="cg-demo-line" x1={demoPoint.x} y1="0" x2={demoPoint.x} y2={-demoPoint.y} />
+              <circle className="cg-demo-point" cx={demoPoint.x} cy={-demoPoint.y} r="0.18" />
+              <text x={demoPoint.x + 0.3} y={-demoPoint.y - 0.2} fill="var(--chalk)" fontSize="0.3">({demoPoint.x}, {demoPoint.y})</text>
+            </svg>
+          </div>
+        </div>
         <div className="cg-panel">
           <div className="cg-svg-wrap">
             <svg

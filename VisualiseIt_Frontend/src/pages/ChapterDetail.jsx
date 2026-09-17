@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchChaptersBySubject, fetchChapterSections } from "../data/api";
 import { getVisualizationComponent } from "../data/visualizationRegistry";
@@ -8,11 +8,14 @@ import "../styles/chapterdetail.css";
 export default function ChapterDetail() {
   const { classId, subjectId, chapterId } = useParams();
   const { authenticatedFetch } = useAuth();
+  const navigate = useNavigate();
 
   const [chapter, setChapter] = useState(null);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const storageKey = `chapter-page-${chapterId}`;
+  const [currentPage, setCurrentPage] = useState(() => Number(sessionStorage.getItem(storageKey)) || 0);
 
   useEffect(() => {
     const loadChapterAndSections = async () => {
@@ -46,6 +49,15 @@ export default function ChapterDetail() {
 
     loadChapterAndSections();
   }, [chapterId, subjectId, authenticatedFetch]);
+
+  useEffect(() => {
+    if (sections.length && currentPage >= sections.length) setCurrentPage(0);
+  }, [sections.length, currentPage]);
+
+  const changePage = (page) => {
+    sessionStorage.setItem(storageKey, String(page));
+    setCurrentPage(page);
+  };
 
   if (loading) {
     return (
@@ -94,25 +106,47 @@ export default function ChapterDetail() {
       <div className="chapter-content-wrapper">
         {sections.length === 0 ? (
           <div className="theory-placeholder"><p>No chapter content is available yet.</p></div>
-        ) : sections.map((section) => {
+        ) : (() => {
+          const section = sections[currentPage];
           const Visualizer = section.visualizationId
             ? getVisualizationComponent(section.visualizationId)
             : null;
 
-          return (
+          return <>
             <section className="chapter-section" key={section.id}>
               <div className="theory-section">
                 <h2>{section.heading}</h2>
+                {section.summary && (
+                  <div className="chapter-summary">
+                    <strong>In simple words</strong>
+                    <p>{section.summary}</p>
+                  </div>
+                )}
                 <div className="section-content">{section.content}</div>
+                {section.keyPoints.length > 0 && (
+                  <div className="chapter-key-points">
+                    <h3>Remember</h3>
+                    <ul>
+                      {section.keyPoints.map((point) => <li key={point}>{point}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
               {Visualizer && (
                 <aside className="visualization-section" aria-label={`${section.heading} visualization`}>
-                  <Visualizer data={{ initialPoints: [{ id: 1, x: 4, y: 3 }, { id: 2, x: -3, y: 5 }] }} />
+                  <Visualizer data={section.visualizationData} />
                 </aside>
               )}
             </section>
-          );
-        })}
+            <nav className="chapter-pagination" aria-label="Chapter sections">
+              <button className="btn secondary" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 0}>← Previous</button>
+              <span>Section {currentPage + 1} of {sections.length}</span>
+              {currentPage === sections.length - 1 ? (
+                <button className="btn primary" onClick={() => navigate(`/classes/${classId}/${subjectId}/${chapterId}/quiz`)}>Take Quiz →</button>
+              ) : <button className="btn primary" onClick={() => changePage(currentPage + 1)}>Next →</button>}
+            </nav>
+          </>;
+        })()}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import ChapterDetail from "./pages/ChapterDetail.jsx";
 import TopicDetail from "./pages/TopicDetail.jsx";
 import GraphPlotting from "./pages/Graphplotting.jsx";
 import Settings from "./pages/Settings.jsx";
-import CoordinateGeometryVisualizer from "./class9/CoordinateGeometryVisualizer.jsx";
+import ChapterQuiz from "./pages/ChapterQuiz.jsx";
 
 function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -42,6 +42,7 @@ function AppRoutes() {
       <Route path="/classes" element={<ProtectedLayout><Classes /></ProtectedLayout>} />
       <Route path="/classes/:classId" element={<ProtectedLayout><Subjects /></ProtectedLayout>} />
       <Route path="/classes/:classId/:subjectId/:chapterId" element={<ProtectedLayout><ChapterDetail /></ProtectedLayout>} />
+      <Route path="/classes/:classId/:subjectId/:chapterId/quiz" element={<ProtectedLayout><ChapterQuiz /></ProtectedLayout>} />
       <Route path="/classes/:classId/:subjectId/:topicId" element={<ProtectedLayout><TopicDetail /></ProtectedLayout>} />
       <Route path="/classes/:classId/:subjectId" element={<ProtectedLayout><SubjectDetail /></ProtectedLayout>} />
       <Route path="/subjects" element={<Navigate to="/classes" replace />} />
