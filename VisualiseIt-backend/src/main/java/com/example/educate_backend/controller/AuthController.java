@@ -3,7 +3,9 @@ package com.example.educate_backend.controller;
 import com.example.educate_backend.dto.RegisterRequest;
 import com.example.educate_backend.dto.LoginRequest;
 import com.example.educate_backend.dto.LoginResponse;
+import com.example.educate_backend.dto.RefreshTokenRequest;
 import com.example.educate_backend.dto.RegisterResponse;
+import com.example.educate_backend.dto.TokenRefreshResponse;
 import com.example.educate_backend.service.AuthService;
 import com.example.educate_backend.exception.InvalidInputException;
 import com.example.educate_backend.exception.EmailAlreadyExistsException;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 /**
  * Authentication Controller.
@@ -99,4 +102,21 @@ public class AuthController {
         log.debug("Health check endpoint called");
         return new ResponseEntity<>("Auth service is up and running", HttpStatus.OK);
     }
+      @PostMapping("/refresh")
+    public ResponseEntity<TokenRefreshResponse> refresh(@RequestBody RefreshTokenRequest request) {
+        try {
+            return new ResponseEntity<>(authService.refresh(request.getRefreshToken()), HttpStatus.OK);
+        } catch (InvalidInputException e) {
+            return new ResponseEntity<>(new TokenRefreshResponse(), HttpStatus.BAD_REQUEST);
+        } catch (AuthenticationException e) {
+            return new ResponseEntity<>(new TokenRefreshResponse(), HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    
+}
 }

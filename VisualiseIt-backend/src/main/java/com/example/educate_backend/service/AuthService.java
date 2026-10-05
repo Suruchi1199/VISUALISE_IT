@@ -4,7 +4,9 @@ import com.example.educate_backend.dto.RegisterRequest;
 import com.example.educate_backend.dto.LoginRequest;
 import com.example.educate_backend.dto.LoginResponse;
 import com.example.educate_backend.dto.RegisterResponse;
+import com.example.educate_backend.dto.TokenRefreshResponse;
 import com.example.educate_backend.model.User;
+import com.example.educate_backend.model.RefreshToken;
 import com.example.educate_backend.model.Role;
 import com.example.educate_backend.Repository.UserRepository;
 import com.example.educate_backend.exception.EmailAlreadyExistsException;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
@@ -34,6 +37,9 @@ public class AuthService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     /**
      * Register a new user.
@@ -106,9 +112,9 @@ public class AuthService {
             log.warn("Login failed: Invalid password for email: {}", loginRequest.getEmail());
             throw new AuthenticationException("Invalid email or password");
         }
-
         // Generate JWT token
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().toString());
+        String refreshToken = refreshTokenService.create(user).getToken();
         log.info("JWT token generated successfully for user: {}", user.getEmail());
 
         // Build response
@@ -116,8 +122,25 @@ public class AuthService {
                 token,
                 user.getName(),
                 user.getEmail(),
-                user.getRole().toString()
+                user.getRole().toString(),
+                refreshToken
         );
+    }
+        @Transactional
+    public TokenRefreshResponse refresh(String refreshToken) {
+        if (!StringUtils.hasText(refreshToken)) {
+            throw new InvalidInputException("Refresh token is required");
+        }
+        RefreshToken newRt = refreshTokenService.verifyAndRotate(refreshToken);
+        User user = newRt.getUser();
+        String accessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().toString());
+        return new TokenRefreshResponse(accessToken, newRt.getToken());
+    }
+
+    public void logout(String refreshToken) {
+        if (StringUtils.hasText(refreshToken)) {
+            refreshTokenService.delete(refreshToken);
+        }
     }
 
     /**
@@ -169,4 +192,5 @@ public class AuthService {
         String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
         return email.matches(emailRegex);
     }
+
 }

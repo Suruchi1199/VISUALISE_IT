@@ -69,12 +69,7 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- Embedded database for local development when MySQL is not running. -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+	
 		<!-- Lombok for reducing boilerplate -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
