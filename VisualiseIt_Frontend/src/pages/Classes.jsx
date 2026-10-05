@@ -9,7 +9,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 export default function Classes() {
   const navigate = useNavigate();
-  const {user, authenticatedFetch, logout, updateUserProfile, selectedClass, setSelectedClass, getToken } = useAuth();
+  const {user, authenticatedFetch, logout, updateUserProfile, selectedClass, setSelectedClass, getToken,uthenticatedFetch} = useAuth();
   const [classes, setClasses] = useState([]);
   const [subjectsMap, setSubjectsMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -22,13 +22,7 @@ export default function Classes() {
       setError("");
 
       try {
-        const token = getToken();
-        const res = await fetch(`${API_URL}/api/classes`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+             const res = await authenticatedFetch(`${API_URL}/api/classes`);
         
         if (!res.ok) {
           console.log(res);

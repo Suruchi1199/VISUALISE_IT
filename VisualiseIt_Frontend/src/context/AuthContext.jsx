@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 const AuthContext = createContext(null);
 
@@ -6,16 +6,16 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [selectedClass, setSelectedClassState] = useState("");
   const [loading, setLoading] = useState(true);
+  const refreshPromiseRef = useRef(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("eduvision_user");
     const storedClass = localStorage.getItem("eduvision_selected_class");
     if (stored) setUser(JSON.parse(stored));
     if (storedClass) setSelectedClassState(storedClass);
-    setLoading(false);//now had read the user from local storage, so we can set loading to false
+    setLoading(false);
   }, []);
 
-  // POST /api/auth/login -> expects { email, password }
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
   const login = async ({ email, password }) => {
@@ -31,13 +31,17 @@ export function AuthProvider({ children }) {
     }
 
     const data = await res.json();
-    const user = { name: data.name || data.username || email.split("@")[0], email, token: data.token || data.accessToken };
+    const user = {
+      name: data.name || data.username || email.split("@")[0],
+      email,
+      token: data.token || data.accessToken,
+      refreshToken: data.refreshToken,
+    };
     localStorage.setItem("eduvision_user", JSON.stringify(user));
     setUser(user);
     return user;
   };
 
-  // POST /api/auth/register -> expects { name, email, password }
   const register = async ({ name, email, password }) => {
     const res = await fetch(`${API_URL}/api/auth/register`, {
       method: "POST",
@@ -58,6 +62,14 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    const stored = JSON.parse(localStorage.getItem("eduvision_user") || "null");
+    if (stored?.refreshToken) {
+      fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: stored.refreshToken }),
+      }).catch(() => {});
+    }
     localStorage.removeItem("eduvision_user");
     localStorage.removeItem("eduvision_selected_class");
     setUser(null);
@@ -69,14 +81,12 @@ export function AuthProvider({ children }) {
     setSelectedClassState(classId);
   };
 
-  // Update user profile in state and localStorage
   const updateUserProfile = (updates) => {
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem("eduvision_user", JSON.stringify(updatedUser));
   };
 
-  // Helper function to get token from localStorage
   const getToken = () => {
     const stored = localStorage.getItem("eduvision_user");
     if (stored) {
@@ -86,33 +96,72 @@ export function AuthProvider({ children }) {
     return null;
   };
 
-  // Authenticated fetch wrapper that includes JWT token in headers
+  // Save new tokens without losing the other user fields
+  const persistTokens = (updates) => {
+    const stored = JSON.parse(localStorage.getItem("eduvision_user") || "null");
+    if (!stored) return;
+    const merged = { ...stored, ...updates };
+    localStorage.setItem("eduvision_user", JSON.stringify(merged));
+    setUser(merged);
+  };
+
+  // Only one refresh call at a time; parallel 401s share the same promise
+  const refreshAccessToken = () => {
+    if (refreshPromiseRef.current) return refreshPromiseRef.current;
+
+    const stored = JSON.parse(localStorage.getItem("eduvision_user") || "null");
+    if (!stored?.refreshToken) return Promise.resolve(null);
+
+    refreshPromiseRef.current = (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken: stored.refreshToken }),
+        });
+        if (!res.ok) throw new Error("Refresh failed");
+        const data = await res.json();
+        persistTokens({ token: data.accessToken, refreshToken: data.refreshToken });
+        return data.accessToken;
+      } catch {
+        logout();
+        return null;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+
+    return refreshPromiseRef.current;
+  };
+
   const authenticatedFetch = async (url, options = {}) => {
-    const token = getToken();
-    const headers = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
+    const doFetch = (token) =>
+      fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
-    // Include Authorization header if token exists
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    let res = await doFetch(getToken());
+
+    if (res.status === 401) {
+      const newToken = await refreshAccessToken();
+      if (newToken) res = await doFetch(newToken);
     }
-
-    return fetch(url, {
-      ...options,
-      headers,
-    });
+    return res;
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login, 
-      register, 
-      logout, 
-      selectedClass, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      selectedClass,
       setSelectedClass,
       getToken,
       authenticatedFetch,
