@@ -40,8 +40,8 @@ public class RefreshTokenService {
         }
 
         User user = old.getUser();
-        refreshTokenRepository.delete(old);
-        return create(user);
+        refreshTokenRepository.delete(old); 
+        return create(user); 
     }
 
     @Transactional

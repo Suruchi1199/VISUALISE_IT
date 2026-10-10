@@ -36,9 +36,9 @@ public class SchoolClassService {
                 new SchoolClass(null, 8, "Class 8", "Prepare for advanced school topics with structured practice and subject-wise progression.", "Bridge toward advanced chapters", "A balanced level for math, science, and computing", "#8f7ee8"),
                 new SchoolClass(null, 9, "Class 9", "Start a more focused academic path with stronger science depth and measurable study goals.", "Sharpen analytical learning", "Ideal for pre-board preparation flow", "#e8615c"),
                 new SchoolClass(null, 10, "Class 10", "Stay organized for board-level preparation with subject detail pages and quicker revision paths.", "Prepare with clarity and structure", "Built for focused final-year revision", "#6fb1e8")
-        );
+        ); 
 
-        for (SchoolClass defaultClass : defaultClasses) {
+        for (SchoolClass defaultClass : defaultClasses) { 
             SchoolClass existing = schoolClassRepository.findAll()
                     .stream()
                     .filter(c -> c.getGradeLevel().equals(defaultClass.getGradeLevel()))

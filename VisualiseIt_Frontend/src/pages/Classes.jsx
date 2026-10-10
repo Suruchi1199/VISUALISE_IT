@@ -9,7 +9,7 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 export default function Classes() {
   const navigate = useNavigate();
-  const {user, authenticatedFetch, logout, updateUserProfile, selectedClass, setSelectedClass, getToken,uthenticatedFetch} = useAuth();
+  const {user, authenticatedFetch, logout, updateUserProfile, selectedClass, setSelectedClass, getToken} = useAuth();
   const [classes, setClasses] = useState([]);
   const [subjectsMap, setSubjectsMap] = useState({});
   const [loading, setLoading] = useState(true);
