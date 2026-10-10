@@ -80,11 +80,15 @@ public class SubjectService {
         }
 
         for (Subject subj : defaults) {
-            boolean exists = subjectRepository.existsByNameAndSchoolClass(subj.getName(), subj.getSchoolClass());
-            if (!exists) {
-                subjectRepository.save(subj);
-                log.info("Created default subject: {} for class {}", subj.getName(), subj.getSchoolClass().getGradeLevel());
-                initializeDefaultChapters(subj);
+            Subject subject = subjectRepository.findByNameAndSchoolClass(subj.getName(), subj.getSchoolClass())
+                    .orElseGet(() -> {
+                        Subject created = subjectRepository.save(subj);
+                        log.info("Created default subject: {} for class {}",
+                                created.getName(), created.getSchoolClass().getGradeLevel());
+                        return created;
+                    });
+            if (chapterRepository.findBySubject_IdOrderByChapterNumber(subject.getId()).isEmpty()) {
+                initializeDefaultChapters(subject);
             }
         }
 

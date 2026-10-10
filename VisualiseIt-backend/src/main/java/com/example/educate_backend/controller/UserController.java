@@ -1,10 +1,14 @@
 package com.example.educate_backend.controller;
 
 import com.example.educate_backend.dto.SettingsResponse;
+import com.example.educate_backend.dto.StudyActivityRequest;
+import com.example.educate_backend.dto.ActivityCalendarResponse;
 import com.example.educate_backend.dto.UpdateProfileRequest;
 import com.example.educate_backend.dto.ProfileResponse;
 import com.example.educate_backend.dto.DashboardResponse;
+import com.example.educate_backend.dto.WebsiteVisitRequest;
 import com.example.educate_backend.service.QuizService;
+import com.example.educate_backend.service.StudyActivityService;
 import com.example.educate_backend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +18,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.DateTimeException;
+import java.time.YearMonth;
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/api/user")
@@ -31,10 +43,47 @@ public class UserController {
     @Autowired
     private QuizService quizService;
 
+    @Autowired
+    private StudyActivityService studyActivityService;
+
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> getDashboard() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(quizService.getDashboard(authentication.getName()));
+    }
+
+    @GetMapping("/activity")
+    public ResponseEntity<ActivityCalendarResponse> getActivityCalendar(
+            @RequestParam String month, @RequestParam String timeZone) {
+        YearMonth requestedMonth;
+        ZoneId requestedTimeZone;
+        try {
+            requestedMonth = YearMonth.parse(month);
+            requestedTimeZone = ZoneId.of(timeZone);
+        } catch (DateTimeException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "A valid month and time zone are required", exception);
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(new ActivityCalendarResponse(
+                studyActivityService.getCalendarActivity(authentication.getName(), requestedMonth, requestedTimeZone)));
+    }
+
+    @PostMapping("/visit")
+    public ResponseEntity<Void> recordWebsiteVisit(@RequestBody WebsiteVisitRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        studyActivityService.recordVisit(authentication.getName(), request.date());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/study-activity/{chapterId}")
+    public ResponseEntity<Void> recordStudyActivity(
+            @PathVariable Long chapterId,
+            @RequestBody StudyActivityRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        studyActivityService.record(authentication.getName(), chapterId, request.seconds(), request.date());
+        return ResponseEntity.noContent().build();
     }
 
     /**

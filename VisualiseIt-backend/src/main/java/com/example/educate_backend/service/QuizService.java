@@ -2,10 +2,14 @@ package com.example.educate_backend.service;
 
 import com.example.educate_backend.Repository.ChapterProgressRepository;
 import com.example.educate_backend.Repository.ChapterRepository;
+import com.example.educate_backend.Repository.StudyActivityRepository;
+import com.example.educate_backend.Repository.SubjectRepository;
 import com.example.educate_backend.Repository.UserRepository;
 import com.example.educate_backend.dto.*;
 import com.example.educate_backend.model.Chapter;
 import com.example.educate_backend.model.ChapterProgress;
+import com.example.educate_backend.model.StudyActivity;
+import com.example.educate_backend.model.Subject;
 import com.example.educate_backend.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,9 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +34,8 @@ public class QuizService {
     private final ChapterRepository chapterRepository;
     private final ChapterProgressRepository progressRepository;
     private final UserRepository userRepository;
+    private final SubjectRepository subjectRepository;
+    private final StudyActivityRepository activityRepository;
 
     @Transactional(readOnly = true)
     public QuizResponse getQuiz(Long chapterId) {
@@ -66,11 +77,93 @@ public class QuizService {
         int totalXp = progress.stream().mapToInt(ChapterProgress::getXpEarned).sum();
         int average = progress.isEmpty() ? 0 : (int) Math.round(progress.stream()
                 .mapToDouble(item -> item.getScore() * 100.0 / item.getTotalQuestions()).average().orElse(0));
+        Set<Long> completedChapterIds = progress.stream().filter(ChapterProgress::isCompleted)
+                .map(item -> item.getChapter().getId()).collect(Collectors.toSet());
         List<DashboardResponse.CompletedChapterResponse> recent = progress.stream().limit(5)
                 .map(item -> new DashboardResponse.CompletedChapterResponse(item.getChapter().getId(),
-                        item.getChapter().getTitle(), item.getScore(), item.getTotalQuestions(), item.getXpEarned()))
+                        item.getChapter().getTitle(), item.getScore(), item.getTotalQuestions(), item.getXpEarned(),
+                        item.getChapter().getSubject().getId(), item.getChapter().getSubject().getName(),
+                        item.getChapter().getSubject().getSchoolClass().getGradeLevel().longValue()))
                 .toList();
-        return new DashboardResponse(totalXp, progress.size(), progress.size(), average, recent);
+
+        List<Chapter> chapters = chapterRepository.findAll();
+        Map<Long, List<Chapter>> chaptersBySubject = chapters.stream()
+                .collect(Collectors.groupingBy(chapter -> chapter.getSubject().getId(), LinkedHashMap::new,
+                        Collectors.toList()));
+        List<DashboardResponse.SubjectProgressResponse> subjectProgress = subjectRepository.findAll().stream()
+                .sorted(Comparator.comparing((Subject subject) -> subject.getSchoolClass().getGradeLevel())
+                        .thenComparing(Subject::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(subject -> {
+                    List<Chapter> subjectChapters = chaptersBySubject.getOrDefault(subject.getId(), List.of());
+                    long completedCount = subjectChapters.stream()
+                            .filter(chapter -> completedChapterIds.contains(chapter.getId())).count();
+                    Chapter nextChapter = subjectChapters.stream()
+                            .filter(chapter -> !completedChapterIds.contains(chapter.getId()))
+                            .min(Comparator.comparing(Chapter::getChapterNumber)).orElse(null);
+                    int percentage = subjectChapters.isEmpty() ? 0
+                            : (int) Math.round(completedCount * 100.0 / subjectChapters.size());
+                    return new DashboardResponse.SubjectProgressResponse(subject.getId(), subject.getName(),
+                            (long) subject.getSchoolClass().getGradeLevel(), subject.getSchoolClass().getName(),
+                            subjectChapters.size(), (int) completedCount, percentage,
+                            nextChapter == null ? null : nextChapter.getId(),
+                            nextChapter == null ? null : nextChapter.getTitle());
+                })
+                .toList();
+
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.minusDays(6);
+        List<StudyActivity> weekActivities = activityRepository
+                .findByUser_IdAndActivityDateBetween(user.getId(), weekStart, today);
+        Map<LocalDate, Integer> secondsByDate = new HashMap<>();
+        weekActivities.forEach(item -> secondsByDate.merge(item.getActivityDate(), item.getSecondsStudied(), Integer::sum));
+        List<DashboardResponse.DailyStudyResponse> weeklyActivity = java.util.stream.IntStream.range(0, 7)
+                .mapToObj(offset -> {
+                    LocalDate date = weekStart.plusDays(offset);
+                    return new DashboardResponse.DailyStudyResponse(date,
+                            (int) Math.round(secondsByDate.getOrDefault(date, 0) / 60.0));
+                })
+                .toList();
+        int weeklyStudyMinutes = weeklyActivity.stream().mapToInt(DashboardResponse.DailyStudyResponse::studyMinutes).sum();
+
+        LocalDate monthStart = today.withDayOfMonth(1);
+        List<StudyActivity> monthActivities = activityRepository
+                .findByUser_IdAndActivityDateBetween(user.getId(), monthStart, today);
+        Map<LocalDate, Integer> monthlySecondsByDate = new HashMap<>();
+        monthActivities.forEach(item -> monthlySecondsByDate.merge(
+                item.getActivityDate(), item.getSecondsStudied(), Integer::sum));
+        List<DashboardResponse.DailyStudyResponse> monthlyActivity = java.util.stream.IntStream
+                .range(0, today.getDayOfMonth())
+                .mapToObj(offset -> {
+                    LocalDate date = monthStart.plusDays(offset);
+                    return new DashboardResponse.DailyStudyResponse(date,
+                            (int) Math.round(monthlySecondsByDate.getOrDefault(date, 0) / 60.0));
+                })
+                .toList();
+        int monthlyStudyMinutes = (int) Math.round(monthActivities.stream()
+                .mapToInt(StudyActivity::getSecondsStudied).sum() / 60.0);
+
+        List<StudyActivity> allActivities = activityRepository.findByUser_IdOrderByLastAccessedDesc(user.getId());
+        Map<Long, Integer> totalSecondsByChapter = new HashMap<>();
+        allActivities.forEach(item -> totalSecondsByChapter.merge(item.getChapter().getId(),
+                item.getSecondsStudied(), Integer::sum));
+        Map<Long, DashboardResponse.RecentActivityResponse> recentByChapter = new LinkedHashMap<>();
+        allActivities.forEach(item -> {
+            Chapter chapter = item.getChapter();
+            Subject subject = chapter.getSubject();
+            recentByChapter.putIfAbsent(chapter.getId(), new DashboardResponse.RecentActivityResponse(
+                    chapter.getId(), chapter.getTitle(), subject.getId(), subject.getName(),
+                    (long) subject.getSchoolClass().getGradeLevel(), totalSecondsByChapter.get(chapter.getId()),
+                    item.getLastAccessed(), completedChapterIds.contains(chapter.getId())));
+        });
+        List<DashboardResponse.RecentActivityResponse> recentActivity = recentByChapter.values().stream()
+                .limit(8).toList();
+        int inProgressCount = (int) recentByChapter.values().stream()
+                .filter(item -> !item.completed()).count();
+
+        return new DashboardResponse(totalXp, (int) progress.stream().filter(ChapterProgress::isCompleted).count(),
+                progress.size(), average, inProgressCount, weeklyStudyMinutes, monthlyStudyMinutes,
+                weeklyActivity, monthlyActivity,
+                subjectProgress, recentActivity, recent);
     }
 
     private int totalXp(Long userId) {
