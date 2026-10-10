@@ -1,13 +1,12 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard, BookOpen, Settings, Rocket, Sigma
+  LayoutDashboard, BookOpen, Settings, Rocket
 } from "lucide-react";
 import "../styles/navbar.css";
 
 const LINKS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/classes", label: "Classes", icon: BookOpen },
-  { to: "/graphplotting", label: "Graph Plotter", icon: Sigma },
 ];
 
 export default function Sidebar() {

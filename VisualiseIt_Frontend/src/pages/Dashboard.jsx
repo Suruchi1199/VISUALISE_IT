@@ -1,207 +1,572 @@
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Clock3,
+  Compass,
+  Cpu,
+  FlaskConical,
+  Globe2,
+  RotateCcw,
+  Sparkles,
+  Sigma,
+  Target,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useNavigate } from "react-router-dom";
-import { CONTINUE_LEARNING, TODAYS_GOAL, WEEKLY_PROGRESS } from "../data/mockData.js";
-import { fetchClassById, fetchSubjectsByClass, fetchDashboard } from "../data/api.js";
-import { useEffect, useState } from "react";
+import {
+  fetchActivityCalendar,
+  fetchClasses,
+  fetchDashboard,
+  fetchRecommendations,
+  getLocalDateString,
+  recordWebsiteVisit,
+} from "../data/api.js";
 import "../styles/dashboard.css";
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function GoalRing({ done, target }) {
-  const pct = Math.min(done / target, 1);
-  const r = 34, c = 2 * Math.PI * r;
+const EMPTY_DASHBOARD = {
+  totalXp: 0,
+  completedChapters: 0,
+  quizzesCompleted: 0,
+  averageScore: 0,
+  inProgressChapters: 0,
+  weeklyStudyMinutes: 0,
+  weeklyActivity: [],
+  subjectProgress: [],
+  recentActivity: [],
+  recentCompletions: [],
+};
+
+function chapterPath(item) {
+  return `/classes/${item.classId}/${item.subjectId}/${item.chapterId}`;
+}
+
+function formatStudyTime(minutes) {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function formatLastAccessed(value) {
+  if (!value) return "Recently";
+  const elapsed = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "Recently";
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.floor(hours / 24)} days ago`;
+}
+
+function MetricCard({ icon: Icon, label, value, caption }) {
   return (
-    <div className="goal-ring-wrap">
-      <svg width="84" height="84">
-        <circle cx="42" cy="42" r={r} stroke="#253352" strokeWidth="7" fill="none" />
-        <circle
-          cx="42" cy="42" r={r} stroke="#e8a33d" strokeWidth="7" fill="none"
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} strokeLinecap="round"
-        />
-      </svg>
-      <div className="goal-ring-label">{Math.round(pct * 100)}%</div>
+    <article className="dashboard-metric">
+      <div className="dashboard-metric-icon"><Icon size={18} aria-hidden="true" /></div>
+      <div className="dashboard-metric-label">{label}</div>
+      <strong className="dashboard-metric-value">{value}</strong>
+      <span>{caption}</span>
+    </article>
+  );
+}
+
+function getSubjectIcon(name) {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("math")) return Sigma;
+  if (normalized.includes("science") || normalized.includes("physics")
+      || normalized.includes("chemistry") || normalized.includes("biology")) return FlaskConical;
+  if (normalized.includes("computer")) return Cpu;
+  if (normalized.includes("social") || normalized.includes("geography")) return Globe2;
+  return BookOpen;
+}
+
+function getRecommendationIcon(type) {
+  if (type === "REVISE") return RotateCcw;
+  if (type === "PRACTICE") return Target;
+  if (type === "CONTINUE") return BookOpen;
+  return Compass;
+}
+
+function DashboardLoading() {
+  return (
+    <div className="dashboard-state" role="status">
+      <span className="dashboard-spinner" />
+      <p>Gathering your learning progress…</p>
     </div>
   );
-}//CLASSES
+}
 
 export default function Dashboard() {
   const { user, selectedClass, setSelectedClass, authenticatedFetch } = useAuth();
-  const navigate = useNavigate();
-  const maxWeek = Math.max(...WEEKLY_PROGRESS);
-  const [activeClass, setActiveClass] = useState(null);
-  const [classSubjects, setClassSubjects] = useState([]);
-  const [learningStats, setLearningStats] = useState({ totalXp: 0, completedChapters: 0, quizzesCompleted: 0, averageScore: 0, recentCompletions: [] });
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [calendarMonth, setCalendarMonth] = useState(() => getLocalDateString().slice(0, 7));
+  const [activeDates, setActiveDates] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(true);
+  const [calendarError, setCalendarError] = useState("");
+  const [calendarReload, setCalendarReload] = useState(0);
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState("");
+  const [classesReload, setClassesReload] = useState(0);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  const [recommendationsError, setRecommendationsError] = useState("");
+  const [recommendationsReload, setRecommendationsReload] = useState(0);
 
   useEffect(() => {
     let mounted = true;
-    async function loadActive() {
-      try {
-        const cls = await fetchClassById(selectedClass, authenticatedFetch) || await fetchClassById(CONTINUE_LEARNING.classId, authenticatedFetch);
-        if (!mounted) return;
-        setActiveClass(cls);
-        const subs = await fetchSubjectsByClass(cls?.id, authenticatedFetch);
-        if (!mounted) return;
-        setClassSubjects((subs || []).slice(0, 5));
-      } catch (e) {
-        if (!mounted) return;
-        setActiveClass(null);
-        setClassSubjects([]);
-      }
-    }
-
-    loadActive();
+    setClassesLoading(true);
+    setClassesError("");
+    fetchClasses(authenticatedFetch)
+      .then((result) => {
+        if (mounted) {
+          setClasses(result
+            .filter((classItem) => Number(classItem.id) >= 6 && Number(classItem.id) <= 10)
+            .sort((first, second) => Number(first.id) - Number(second.id)));
+        }
+      })
+      .catch((err) => {
+        if (mounted) setClassesError(err.message || "We couldn't load your classes.");
+      })
+      .finally(() => {
+        if (mounted) setClassesLoading(false);
+      });
     return () => { mounted = false; };
-  }, [selectedClass, authenticatedFetch]);
+  }, [authenticatedFetch, classesReload]);
 
   useEffect(() => {
-    fetchDashboard(authenticatedFetch).then(setLearningStats).catch(() => {});
-  }, [authenticatedFetch]);
-  const focusSubject = classSubjects[0] || {};
-  const activeClassLabel = activeClass?.label || "Study path";
-  const activeClassDescription = activeClass?.description || "";
-  const activeClassId = activeClass?.id;
-  const recentConcepts = classSubjects.slice(0, 3).map((subject) => ({
-    title: subject.nextLesson || "No next lesson available",
-    subject: subject.name || "Subject",
-    when: `${activeClassLabel} plan`,
-  }));
-  const roadmapSubjects = classSubjects.slice(0, 3);
+    let mounted = true;
+    setLoading(true);
+    setError("");
+    fetchDashboard(authenticatedFetch)
+      .then((result) => {
+        if (mounted) setDashboard({ ...EMPTY_DASHBOARD, ...result });
+      })
+      .catch((err) => {
+        if (mounted) setError(err.message || "We couldn't load your learning progress.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [authenticatedFetch, reload]);
 
-  const handleGraphPlotting = () => {
-    navigate("/graphplotting");
-  };
+  useEffect(() => {
+    let mounted = true;
+    setCalendarLoading(true);
+    setCalendarError("");
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const loadCalendar = async () => {
+      if (calendarMonth === getLocalDateString().slice(0, 7)) {
+        await recordWebsiteVisit(getLocalDateString(), authenticatedFetch);
+      }
+      return fetchActivityCalendar(calendarMonth, timeZone, authenticatedFetch);
+    };
+    loadCalendar()
+      .then((result) => {
+        if (mounted) setActiveDates(Array.isArray(result.activeDates) ? result.activeDates : []);
+      })
+      .catch((err) => {
+        if (mounted) setCalendarError(err.message || "We couldn't load this month's activity.");
+      })
+      .finally(() => {
+        if (mounted) setCalendarLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [authenticatedFetch, calendarMonth, calendarReload]);
 
-  const handleOpenClass = () => {
-    if (!activeClass) {
-      return;
-    }
+  const unfinished = useMemo(
+    () => (dashboard?.recentActivity || []).filter((item) => !item.completed),
+    [dashboard],
+  );
+  const availableSubjects = dashboard?.subjectProgress || [];
+  const activeClass = classes.find((classItem) => String(classItem.id) === String(selectedClass))
+    || classes[0]
+    || null;
+  const recommendationClassId = activeClass?.id || selectedClass;
 
-    setSelectedClass(activeClass.id);
-    navigate(`/classes/${activeClass.id}`);
+  useEffect(() => {
+    if (classesLoading) return undefined;
+    let mounted = true;
+    setRecommendationsLoading(true);
+    setRecommendationsError("");
+    setRecommendations([]);
+    fetchRecommendations(recommendationClassId, authenticatedFetch)
+      .then((result) => {
+        if (mounted) setRecommendations(result);
+      })
+      .catch((err) => {
+        if (mounted) setRecommendationsError(err.message || "We couldn't load your recommendations.");
+      })
+      .finally(() => {
+        if (mounted) setRecommendationsLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [authenticatedFetch, classesLoading, recommendationClassId, recommendationsReload]);
+
+  const recommendationSubjects = activeClass
+    ? availableSubjects.filter((subject) => String(subject.classId) === String(activeClass.id))
+    : [];
+  const lastUnfinished = unfinished[0];
+  const nextSubject = recommendationSubjects.find((subject) => subject.nextChapterId);
+  const resumeTarget = lastUnfinished || (nextSubject ? {
+    chapterId: nextSubject.nextChapterId,
+    chapterTitle: nextSubject.nextChapterTitle,
+    subjectId: nextSubject.subjectId,
+    classId: nextSubject.classId,
+    subjectName: nextSubject.subjectName,
+  } : null);
+  const continueHref = resumeTarget ? chapterPath(resumeTarget) : "/classes";
+  const continueSubject = dashboard?.subjectProgress?.find(
+    (subject) => subject.subjectId === resumeTarget?.subjectId,
+  );
+  if (loading) return <DashboardLoading />;
+
+  if (error) {
+    return (
+      <section className="dashboard-state dashboard-error" role="alert">
+        <p className="eyebrow">Dashboard unavailable</p>
+        <h1 className="page-title">We couldn’t load your progress.</h1>
+        <p>{error}</p>
+        <button className="btn primary" onClick={() => setReload((current) => current + 1)}>Try again</button>
+      </section>
+    );
+  }
+
+  const subjects = recommendationSubjects;
+  const recentCompletions = dashboard.recentCompletions || [];
+  const [calendarYear, calendarMonthNumber] = calendarMonth.split("-").map(Number);
+  const monthStart = new Date(calendarYear, calendarMonthNumber - 1, 1);
+  const daysInMonth = new Date(calendarYear, calendarMonthNumber, 0).getDate();
+  const today = getLocalDateString();
+  const monthDays = [
+    ...Array(monthStart.getDay()).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, index) => ({
+      day: index + 1,
+      date: getLocalDateString(new Date(calendarYear, calendarMonthNumber - 1, index + 1)),
+    })),
+  ];
+  while (monthDays.length % 7) monthDays.push(null);
+  const activeDateSet = new Set(activeDates);
+  const currentMonth = today.slice(0, 7);
+  const monthlyMonthLabel = new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    year: "numeric",
+  }).format(monthStart);
+  const changeCalendarMonth = (offset) => {
+    const nextMonth = new Date(calendarYear, calendarMonthNumber - 1 + offset, 1);
+    setCalendarMonth(`${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}`);
   };
 
   return (
-    <div>
-      <p className="eyebrow">Dashboard</p>
-      <h1 className="page-title">Welcome back{user?.name ? `, ${user.name}` : ""}.</h1>
-      <p className="page-sub">Here's where you left off, and what's worth exploring next.</p>
+    <main className="student-dashboard">
+      <header className="dashboard-heading">
+        <div>
+          <p className="eyebrow">Student dashboard</p>
+          <h1 className="page-title">Welcome back{user?.name ? `, ${user.name}` : ""}.</h1>
+          <p className="page-sub">A clear view of your progress and what to learn next.</p>
+        </div>
+        <div className="dashboard-heading-actions">
+          <span className="dashboard-xp"><Sparkles size={14} aria-hidden="true" /> {dashboard.totalXp} XP earned</span>
+        </div>
+      </header>
 
-      <div className="dash-grid">
-        <div className="dash-col">
-          {/* Continue Learning */}
-          <div className="continue-card">
-            <div className="continue-orb" />
-            <span className="badge">{activeClassLabel}</span>
-            <h3>{activeClassId && focusSubject?.id ? focusSubject?.name || "Subject not available" : "Choose a class and personalize your learning path."}</h3>
-            <p>
-              {activeClassId && focusSubject?.id
-                ? `Pick up with ${focusSubject?.nextLesson ? focusSubject.nextLesson.toLowerCase() : "your next lesson"} and continue where ${activeClassLabel} left off.`
-                : "Start with a class selection so your subjects, study flow, and next steps feel more focused."}
-            </p>
-            <div className="continue-progress-row">
-              <div className="bar"><div className="bar-fill" style={{ width: `${CONTINUE_LEARNING.progress}%` }} /></div>
-              <span>{CONTINUE_LEARNING.progress}%</span>
-            </div>
-            <button
-              className="btn primary"
-              onClick={activeClassId && focusSubject?.id ? () => navigate(`/classes/${activeClassId}/${focusSubject.id}`) : () => navigate("/classes")}
-            >
-              {activeClassId && focusSubject?.id ? "Continue learning" : "Choose class"}
-            </button>
-          </div>
-
-          {activeClass && (
-            <div className="card">
-              <p className="section-title">Current class</p>
-              <div className="visualization-options class-focus-panel">
-                <div className="viz-option">
-                  <h4>{activeClass.label}</h4>
-                  <p>{activeClass.description}</p>
-                  <div className="dashboard-chip-row">
-                    {classSubjects.map((subject) => (
-                      <span key={subject.id} className="dashboard-chip">{subject.name}</span>
-                    ))}
-                  </div>
-                  <div className="dashboard-action-row">
-                    <button className="btn" onClick={handleOpenClass}>
-                      View class subjects
-                    </button>
-                    <button className="btn secondary" onClick={handleGraphPlotting}>
-                      Open Graph Plotter
-                    </button>
-                  </div>
-                </div>
+      <section className="dashboard-hero" aria-labelledby="continue-title">
+        <div className="dashboard-hero-copy">
+          <span className="dashboard-hero-kicker"><BookOpen size={15} aria-hidden="true" /> CONTINUE LEARNING</span>
+          <h2 id="continue-title">{resumeTarget?.chapterTitle || "Your next learning win is waiting."}</h2>
+          <p>
+            {resumeTarget
+              ? `${resumeTarget.subjectName || "Your subject"}${lastUnfinished ? ` · Last opened ${formatLastAccessed(lastUnfinished.lastAccessed)}` : ""}`
+              : "Choose a class and find a topic to get started."}
+          </p>
+          {continueSubject && (
+            <div className="dashboard-hero-progress" aria-label={`${continueSubject.progressPercentage}% subject progress`}>
+              <div className="dashboard-progress-track">
+                <span style={{ width: `${continueSubject.progressPercentage}%` }} />
               </div>
+              <span>{continueSubject.progressPercentage}% subject progress</span>
             </div>
           )}
+          <Link className="btn primary dashboard-continue" to={continueHref}>
+            {lastUnfinished ? "Continue learning" : resumeTarget ? "Start learning" : "Explore classes"}
+            <ArrowRight size={17} aria-hidden="true" />
+          </Link>
+        </div>
+        <BookOpen className="dashboard-hero-mark" size={42} strokeWidth={1.5} aria-hidden="true" />
+      </section>
 
-          <div className="card list-card">
-            <p className="section-title">Next concepts</p>
-            <ul>
-              {recentConcepts.map((c, i) => (
-                <li className="list-row" key={i}>
-                  <div className="list-row-main">
-                    <span className="list-row-title">{c.title}</span>
-                    <span className="list-row-sub">{c.subject} · {c.when}</span>
+      <section className="dashboard-metrics" aria-label="Learning overview">
+        <MetricCard icon={CheckCircle2} label="Topics completed" value={dashboard.completedChapters} caption="Quiz-completed chapters" />
+        <MetricCard icon={BookOpen} label="In progress" value={dashboard.inProgressChapters} caption="Topics you’ve opened" />
+        <MetricCard icon={Target} label="Average quiz score" value={`${dashboard.averageScore}%`} caption={`${dashboard.quizzesCompleted} quizzes completed`} />
+        <MetricCard icon={Clock3} label="Study time this week" value={formatStudyTime(dashboard.weeklyStudyMinutes)} caption="Time spent learning" />
+      </section>
+
+      <div className="dashboard-columns">
+        <div className="dashboard-primary-column">
+          <section className="dashboard-panel" aria-labelledby="subject-progress-title">
+            <div className="dashboard-section-heading dashboard-subject-heading">
+              <div>
+                <p className="eyebrow">Your curriculum</p>
+                <h2 id="subject-progress-title">Your subjects</h2>
+              </div>
+              {classes.length > 0 && (
+                <div className="dashboard-class-selector" role="group" aria-label="Choose class">
+                  {classes.map((classItem) => (
+                    <button
+                      type="button"
+                      key={classItem.id}
+                      className={String(activeClass?.id) === String(classItem.id) ? "active" : ""}
+                      aria-pressed={String(activeClass?.id) === String(classItem.id)}
+                      onClick={() => setSelectedClass(classItem.id)}
+                    >
+                      {classItem.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {classesLoading ? (
+              <p className="dashboard-empty">Loading your classes…</p>
+            ) : classesError ? (
+              <div className="dashboard-empty" role="alert">
+                <p>{classesError}</p>
+                <button className="dashboard-inline-action" onClick={() => setClassesReload((value) => value + 1)}>Try again</button>
+              </div>
+            ) : !classes.length ? (
+              <div className="dashboard-empty">
+                <p>No classes from 6 to 10 are currently available.</p>
+                <Link to="/classes">Browse classes <ArrowRight size={15} /></Link>
+              </div>
+            ) : subjects.length ? (
+              <div className="dashboard-subject-grid">
+                {subjects.map((subject) => {
+                  const Icon = getSubjectIcon(subject.subjectName);
+                  return (
+                    <Link
+                      className="dashboard-subject-card"
+                      key={subject.subjectId}
+                      to={`/classes/${subject.classId}/${subject.subjectId}`}
+                    >
+                      <div className="dashboard-subject-card-heading">
+                        <span className="dashboard-subject-card-icon"><Icon size={19} aria-hidden="true" /></span>
+                        <span className="dashboard-subject-card-arrow"><ArrowRight size={15} aria-hidden="true" /></span>
+                      </div>
+                      <strong className="dashboard-subject-card-title">{subject.subjectName}</strong>
+                      <span className="dashboard-subject-card-class">{subject.className}</span>
+                      <div className="dashboard-subject-card-count">
+                        <span>{subject.completedChapters} of {subject.totalChapters} topics</span>
+                        <span>{subject.progressPercentage}%</span>
+                      </div>
+                      <div className="dashboard-progress-track" role="progressbar" aria-label={`${subject.className} ${subject.subjectName} progress`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={subject.progressPercentage}>
+                        <span style={{ width: `${subject.progressPercentage}%` }} />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="dashboard-empty">
+                <p>No subjects are available for {activeClass?.label || "this class"} yet.</p>
+                <Link to={`/classes/${activeClass.id}`}>Open class <ArrowRight size={15} /></Link>
+              </div>
+            )}
+          </section>
+
+          <section className="dashboard-panel" aria-labelledby="recommendations-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="eyebrow">Picked for you</p>
+                <h2 id="recommendations-title">Your next recommendations</h2>
+              </div>
+              <Sparkles size={19} aria-hidden="true" />
+            </div>
+            {recommendationsLoading ? (
+              <p className="dashboard-empty" role="status">Finding topics that fit your progress…</p>
+            ) : recommendationsError ? (
+              <div className="dashboard-empty" role="alert">
+                <p>{recommendationsError}</p>
+                <button
+                  className="dashboard-inline-action"
+                  onClick={() => setRecommendationsReload((value) => value + 1)}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : recommendations.length ? (
+              <div className="dashboard-recommendations">
+                {recommendations.map((recommendation) => {
+                  const Icon = getRecommendationIcon(recommendation.type);
+                  return (
+                    <Link
+                      className="dashboard-recommendation"
+                      key={`${recommendation.topicId}-${recommendation.type}`}
+                      to={recommendation.destination}
+                    >
+                      <span className="dashboard-recommendation-icon"><Icon size={18} aria-hidden="true" /></span>
+                      <span className="dashboard-recommendation-copy">
+                        <strong>{recommendation.title}</strong>
+                        <span>{recommendation.reason}</span>
+                        <span className="dashboard-recommendation-link">{recommendation.actionLabel} <ArrowRight size={14} /></span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="dashboard-empty">
+                <p>No new topics to recommend just yet.</p>
+                <Link to="/classes">Find a topic <ArrowRight size={15} /></Link>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="dashboard-secondary-column">
+          <section className="dashboard-panel dashboard-calendar-panel" aria-labelledby="monthly-activity-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="eyebrow">Your consistency</p>
+                <h2 id="monthly-activity-title">Monthly activity</h2>
+              </div>
+              {!calendarLoading && !calendarError && (
+                <span className="dashboard-activity-total">
+                  {activeDates.length} active {activeDates.length === 1 ? "day" : "days"}
+                </span>
+              )}
+            </div>
+            <div className="dashboard-calendar">
+              <div className="dashboard-calendar-header">
+                <strong>{monthlyMonthLabel}</strong>
+                <div className="dashboard-calendar-navigation">
+                  <button
+                    type="button"
+                    aria-label="Previous month"
+                    onClick={() => changeCalendarMonth(-1)}
+                  >
+                    <ChevronLeft size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next month"
+                    disabled={calendarMonth >= currentMonth}
+                    onClick={() => changeCalendarMonth(1)}
+                  >
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+              {calendarLoading ? (
+                <div className="dashboard-calendar-message" role="status">Loading activity…</div>
+              ) : calendarError ? (
+                <div className="dashboard-calendar-message dashboard-calendar-error" role="alert">
+                  <span>{calendarError}</span>
+                  <button type="button" onClick={() => setCalendarReload((value) => value + 1)}>Retry</button>
+                </div>
+              ) : (
+                <>
+                  <div className="dashboard-month-calendar" role="grid" aria-label={`Activity calendar for ${monthlyMonthLabel}`}>
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <span className="dashboard-month-weekday" role="columnheader" key={day}>{day}</span>
+                    ))}
+                    {monthDays.map((item, index) => {
+                      if (!item) return <span className="dashboard-month-blank" role="gridcell" aria-hidden="true" key={`blank-${index}`} />;
+                      const isActive = activeDateSet.has(item.date);
+                      const isToday = item.date === today;
+                      const dateLabel = new Intl.DateTimeFormat(undefined, { dateStyle: "full" })
+                        .format(new Date(calendarYear, calendarMonthNumber - 1, item.day));
+                      return (
+                        <span
+                          className={`dashboard-month-day${isActive ? " is-active" : ""}${isToday ? " is-today" : ""}`}
+                          role="gridcell"
+                          aria-label={`${dateLabel}${isActive ? ", activity recorded" : ", no activity"}${isToday ? ", today" : ""}`}
+                          title={`${dateLabel}${isActive ? " · Activity recorded" : " · No activity"}${isToday ? " · Today" : ""}`}
+                          key={item.date}
+                        >
+                          {isActive && <Check size={13} strokeWidth={3} aria-hidden="true" />}
+                          <span>{item.day}</span>
+                        </span>
+                      );
+                    })}
                   </div>
-                  <span className="list-row-tag">Planned</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="card">
-            <p className="section-title">Class roadmap</p>
-            <div className="recommend-grid">
-              {activeClass && roadmapSubjects.map((subject) => (
-                <div className="recommend-card" key={subject.id}>
-                  <span className="list-row-tag">{activeClass.label}</span>
-                  <h4>{subject.name}</h4>
-                  <p>{subject.objective}</p>
-                </div>
-              ))}
+                  <div className="dashboard-calendar-legend" aria-label="Calendar legend">
+                    <span><i className="legend-active"><Check size={10} strokeWidth={3} /></i> Activity</span>
+                    <span><i className="legend-inactive" /> No activity</span>
+                    <span><i className="legend-today" /> Today</span>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="dash-col">
-          {/* XP / coins / streak */}
-          <div className="card">
-            <p className="section-title">Your stats</p>
-            <div className="stat-row">
-              <div className="stat-box"><div className="val">{learningStats.totalXp}</div><div className="lbl">XP</div></div>
-              <div className="stat-box"><div className="val">{learningStats.completedChapters}</div><div className="lbl">Chapters</div></div>
-              <div className="stat-box"><div className="val">{learningStats.averageScore}%</div><div className="lbl">Quiz average</div></div>
+          <section className="dashboard-panel" aria-labelledby="resume-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="eyebrow">Pick up where you left off</p>
+                <h2 id="resume-title">Recently accessed</h2>
+              </div>
             </div>
-          </div>
+            {unfinished.length ? (
+              <ul className="dashboard-recent-list">
+                {unfinished.slice(0, 5).map((item) => (
+                  <li key={item.chapterId}>
+                    <div className="dashboard-recent-icon"><BookOpen size={17} aria-hidden="true" /></div>
+                    <div className="dashboard-recent-copy">
+                      <strong>{item.chapterTitle}</strong>
+                      <span>{item.subjectName} · {formatLastAccessed(item.lastAccessed)}</span>
+                    </div>
+                    <Link className="dashboard-resume-link" to={chapterPath(item)} aria-label={`Resume ${item.chapterTitle}`}>
+                      <ArrowRight size={17} aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="dashboard-empty">
+                <p>No unfinished topics yet. Open a chapter and your recent learning will be saved here.</p>
+                <Link to="/classes">Browse topics <ArrowRight size={15} /></Link>
+              </div>
+            )}
+          </section>
 
-          {/* Today's goal */}
-          <div className="card goal-card">
-            <GoalRing done={TODAYS_GOAL.doneMinutes} target={TODAYS_GOAL.targetMinutes} />
-            <div className="goal-meta">
-              <p className="section-title" style={{ marginBottom: 2 }}>Today's goal</p>
-              <p>{TODAYS_GOAL.doneMinutes} / {TODAYS_GOAL.targetMinutes} minutes learned</p>
+          <section className="dashboard-panel" aria-labelledby="quiz-history-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="eyebrow">Keep it going</p>
+                <h2 id="quiz-history-title">Recent quiz results</h2>
+              </div>
+              <Target size={19} aria-hidden="true" />
             </div>
-          </div>
-
-          {/* Weekly progress (pure CSS bar chart) */}
-          <div className="card">
-            <p className="section-title">This week</p>
-            <div className="week-bars">
-              {WEEKLY_PROGRESS.map((m, i) => (
-                <div className="week-bar" key={i}>
-                  <div className="fill" style={{ height: `${(m / maxWeek) * 100}%` }} />
-                  <span className="day">{DAYS[i]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <p className="section-title">Completed chapters</p>
-            {learningStats.recentCompletions.length ? <ul>{learningStats.recentCompletions.map((item) => <li className="list-row" key={item.chapterId}><div className="list-row-main"><span className="list-row-title">{item.chapterTitle}</span><span className="list-row-sub">Score: {item.score}/{item.totalQuestions}</span></div><span className="list-row-tag">+{item.xpEarned} XP</span></li>)}</ul> : <p className="page-sub">Complete a chapter quiz to see your progress here.</p>}
-          </div>
-        </div>
+            {recentCompletions.length ? (
+              <ul className="dashboard-quiz-list">
+                {recentCompletions.slice(0, 5).map((item) => (
+                  <li key={item.chapterId}>
+                    <span className="dashboard-quiz-icon"><CheckCircle2 size={16} aria-hidden="true" /></span>
+                    <span className="dashboard-quiz-copy">
+                      <strong>{item.chapterTitle}</strong>
+                      <span>{item.score}/{item.totalQuestions} correct · +{item.xpEarned} XP</span>
+                    </span>
+                    <span className="dashboard-quiz-score">
+                      {item.totalQuestions ? Math.round((item.score / item.totalQuestions) * 100) : 0}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="dashboard-empty">Your completed quizzes and scores will appear here.</p>
+            )}
+          </section>
+        </aside>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,4 +1,6 @@
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+let pendingWebsiteVisitDate = null;
+let pendingWebsiteVisitRequest = null;
 
 export async function fetchClasses(authFetch) {
   const res = authFetch ? await authFetch(`${API_URL}/api/classes`) : await fetch(`${API_URL}/api/classes`);
@@ -120,6 +122,61 @@ export async function fetchDashboard(authFetch) {
   return res.json();
 }
 
+export async function fetchRecommendations(classId, authFetch) {
+  const params = new URLSearchParams();
+  if (classId) params.set("classId", classId);
+  const query = params.toString();
+  const url = `${API_URL}/api/user/recommendations${query ? `?${query}` : ""}`;
+  const res = await authFetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch recommendations: ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data)) throw new Error("The recommendations response was invalid.");
+  return data;
+}
+
+export function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export async function fetchActivityCalendar(month, timeZone, authFetch) {
+  const params = new URLSearchParams({ month, timeZone });
+  const res = await authFetch(`${API_URL}/api/user/activity?${params.toString()}`);
+  if (!res.ok) throw new Error(`Failed to fetch activity calendar: ${res.status}`);
+  return res.json();
+}
+
+export function recordWebsiteVisit(date, authFetch) {
+  if (pendingWebsiteVisitDate === date && pendingWebsiteVisitRequest) {
+    return pendingWebsiteVisitRequest;
+  }
+
+  pendingWebsiteVisitDate = date;
+  pendingWebsiteVisitRequest = (async () => {
+    const res = await authFetch(`${API_URL}/api/user/visit`, {
+      method: "POST",
+      body: JSON.stringify({ date }),
+    });
+    if (!res.ok) throw new Error(`Failed to record website visit: ${res.status}`);
+  })().finally(() => {
+    if (pendingWebsiteVisitDate === date) {
+      pendingWebsiteVisitDate = null;
+      pendingWebsiteVisitRequest = null;
+    }
+  });
+  return pendingWebsiteVisitRequest;
+}
+
+export async function recordStudyActivity(chapterId, seconds, authFetch) {
+  const res = await authFetch(`${API_URL}/api/user/study-activity/${chapterId}`, {
+    method: "POST",
+    body: JSON.stringify({ seconds, date: getLocalDateString() }),
+  });
+  if (!res.ok) throw new Error(`Failed to record study activity: ${res.status}`);
+}
+
 export default {
   fetchClasses,
   fetchSubjectsByClass,
@@ -132,4 +189,9 @@ export default {
   fetchChapterQuiz,
   submitChapterQuiz,
   fetchDashboard,
+  fetchRecommendations,
+  fetchActivityCalendar,
+  recordWebsiteVisit,
+  recordStudyActivity,
+  getLocalDateString,
 };

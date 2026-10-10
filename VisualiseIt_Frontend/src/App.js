@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { getLocalDateString, recordWebsiteVisit } from "./data/api.js";
 import Sidebar from "./components/Sidebar.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Home from "./pages/Home.jsx";
@@ -30,7 +32,22 @@ function ProtectedLayout({ children }) {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, authenticatedFetch } = useAuth();
+  const recordedVisit = useRef("");
+
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const visitKey = `${user.email}:${getLocalDateString()}`;
+    if (recordedVisit.current === visitKey) return;
+    recordedVisit.current = visitKey;
+
+    recordWebsiteVisit(getLocalDateString(), authenticatedFetch).catch((error) => {
+      recordedVisit.current = "";
+      console.error("Unable to record website visit:", error);
+    });
+  }, [authenticatedFetch, loading, user]);
+
   if (loading) return null;
 
   return (

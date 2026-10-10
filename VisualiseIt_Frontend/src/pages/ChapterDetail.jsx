@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { fetchChaptersBySubject, fetchChapterSections } from "../data/api";
+import { fetchChaptersBySubject, fetchChapterSections, recordStudyActivity } from "../data/api";
 import { getVisualizationComponent } from "../data/visualizationRegistry";
 import "../styles/chapterdetail.css";
 
@@ -14,6 +14,7 @@ export default function ChapterDetail() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const activityAccessedChapter = useRef(null);
   const storageKey = `chapter-page-${chapterId}`;
   const [currentPage, setCurrentPage] = useState(() => Number(sessionStorage.getItem(storageKey)) || 0);
 
@@ -49,6 +50,51 @@ export default function ChapterDetail() {
 
     loadChapterAndSections();
   }, [chapterId, subjectId, authenticatedFetch]);
+
+  useEffect(() => {
+    if (!chapterId) return undefined;
+
+    let visibleSince = Date.now();
+    let visible = document.visibilityState === "visible";
+    let requests = Promise.resolve();
+    const postActivity = (seconds) => {
+      let remaining = seconds;
+      do {
+        const intervalSeconds = Math.min(remaining, 120);
+        requests = requests
+          .then(() => recordStudyActivity(chapterId, intervalSeconds, authenticatedFetch))
+          .catch((err) => console.error("Unable to record study activity:", err));
+        remaining -= intervalSeconds;
+      } while (remaining > 0);
+    };
+    const recordVisibleTime = () => {
+      if (!visible) return;
+      const seconds = Math.floor((Date.now() - visibleSince) / 1000);
+      visibleSince = Date.now();
+      if (seconds > 0) postActivity(seconds);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        recordVisibleTime();
+        visible = false;
+      } else if (!visible) {
+        visible = true;
+        visibleSince = Date.now();
+      }
+    };
+
+    if (activityAccessedChapter.current !== chapterId) {
+      postActivity(0);
+      activityAccessedChapter.current = chapterId;
+    }
+    const timer = window.setInterval(recordVisibleTime, 60_000);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      recordVisibleTime();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [chapterId, authenticatedFetch]);
 
   useEffect(() => {
     if (sections.length && currentPage >= sections.length) setCurrentPage(0);
