@@ -6,8 +6,10 @@ import com.example.educate_backend.dto.ActivityCalendarResponse;
 import com.example.educate_backend.dto.UpdateProfileRequest;
 import com.example.educate_backend.dto.ProfileResponse;
 import com.example.educate_backend.dto.DashboardResponse;
+import com.example.educate_backend.dto.TopicRecommendationResponse;
 import com.example.educate_backend.dto.WebsiteVisitRequest;
 import com.example.educate_backend.service.QuizService;
+import com.example.educate_backend.service.RecommendationService;
 import com.example.educate_backend.service.StudyActivityService;
 import com.example.educate_backend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.DateTimeException;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
@@ -46,10 +49,20 @@ public class UserController {
     @Autowired
     private StudyActivityService studyActivityService;
 
+    @Autowired
+    private RecommendationService recommendationService;
+
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> getDashboard() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return ResponseEntity.ok(quizService.getDashboard(authentication.getName()));
+    }
+
+    @GetMapping("/recommendations")
+    public ResponseEntity<List<TopicRecommendationResponse>> getRecommendations(
+            @RequestParam(required = false) Integer classId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(recommendationService.getRecommendations(authentication.getName(), classId));
     }
 
     @GetMapping("/activity")
